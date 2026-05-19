@@ -26,7 +26,7 @@ export default function PromptInput({
   const extractRefs = useCallback(() => {
     if (imageCount === 0) return [];
     const matches = [];
-    const re = /@(\d{2})/g;
+    const re = /@(\d+)/g;
     let m;
     while ((m = re.exec(prompt)) !== null) {
       const num = parseInt(m[1], 10);
@@ -44,11 +44,11 @@ export default function PromptInput({
 
   const buildHighlightHtml = useCallback(() => {
     if (refs.length === 0) return prompt;
-    const re = /(@\d{2})/g;
+    const re = /(@\d+)/g;
     const parts = prompt.split(re);
     return parts
       .map((part) => {
-        const m = part.match(/^@(\d{2})$/);
+        const m = part.match(/^@(\d+)$/);
         if (m) {
           const num = parseInt(m[1], 10);
           if (num >= 1 && num <= imageCount) {

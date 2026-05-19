@@ -6,6 +6,14 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
+function fetchWithTimeout(url, options = {}, timeoutMs = 120000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() =>
+    clearTimeout(timeout),
+  );
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -35,23 +43,29 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 },
 });
 
-app.post('/api/upload', upload.array('images', 10), (req, res) => {
+app.post('/api/upload', upload.array('images', 10), async (req, res) => {
   try {
-    const files = req.files.map((file, index) => {
-      const filePath = path.join(uploadsDir, file.filename);
-      const data = fs.readFileSync(filePath);
-      const base64 = data.toString('base64');
-      const mimeType = file.mimetype || 'image/png';
-      const dataUrl = `data:${mimeType};base64,${base64}`;
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, error: '请选择至少一张图片' });
+    }
 
-      return {
-        id: index,
-        label: `@${String(index + 1).padStart(2, '0')}`,
-        filename: file.filename,
-        url: `/uploads/${file.filename}`,
-        dataUrl,
-      };
-    });
+    const files = await Promise.all(
+      req.files.map(async (file, index) => {
+        const filePath = path.join(uploadsDir, file.filename);
+        const data = await fs.promises.readFile(filePath);
+        const base64 = data.toString('base64');
+        const mimeType = file.mimetype || 'image/png';
+        const dataUrl = `data:${mimeType};base64,${base64}`;
+
+        return {
+          id: index,
+          label: `@${String(index + 1).padStart(2, '0')}`,
+          filename: file.filename,
+          url: `/uploads/${file.filename}`,
+          dataUrl,
+        };
+      }),
+    );
 
     res.json({ success: true, images: files });
   } catch (err) {
@@ -89,15 +103,19 @@ app.post('/api/generate', async (req, res) => {
 
     console.log('Calling yunwu.ai with prompt:', prompt.substring(0, 80) + '...');
 
-    const response = await fetch(`${process.env.YUNWU_API_BASE || 'https://yunwu.ai'}/v1/images/generations`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'application/json',
+    const response = await fetchWithTimeout(
+      `${process.env.YUNWU_API_BASE || 'https://yunwu.ai'}/v1/images/generations`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    });
+      120000,
+    );
 
     const data = await response.json();
 
@@ -117,7 +135,8 @@ app.post('/api/generate', async (req, res) => {
     res.json({ success: true, images: resultImages, created: data.created });
   } catch (err) {
     console.error('Generate error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    const message = err.name === 'AbortError' ? '请求超时，请稍后重试' : err.message;
+    res.status(500).json({ success: false, error: message });
   }
 });
 
@@ -148,23 +167,27 @@ app.post('/api/optimize-prompt', async (req, res) => {
 
     console.log('Optimizing prompt:', original.substring(0, 80) + '...');
 
-    const response = await fetch(`${process.env.YUNWU_API_BASE || 'https://yunwu.ai'}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'application/json',
+    const response = await fetchWithTimeout(
+      `${process.env.YUNWU_API_BASE || 'https://yunwu.ai'}/v1/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-5.5',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: original },
+          ],
+          temperature: 0.7,
+          max_tokens: 2000,
+        }),
       },
-      body: JSON.stringify({
-        model: 'gpt-5.5',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: original },
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      }),
-    });
+      60000,
+    );
 
     const data = await response.json();
 
@@ -180,7 +203,8 @@ app.post('/api/optimize-prompt', async (req, res) => {
     res.json({ success: true, optimized: optimized.trim() });
   } catch (err) {
     console.error('Optimize error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    const message = err.name === 'AbortError' ? '请求超时，请稍后重试' : err.message;
+    res.status(500).json({ success: false, error: message });
   }
 });
 

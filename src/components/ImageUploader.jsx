@@ -7,15 +7,31 @@ export default function ImageUploader({ images, onChange }) {
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  const isValidImage = (file) => {
+    return file.type.startsWith('image/');
+  };
 
   const handleFileSelect = async (files) => {
     if (!files || files.length === 0) return;
 
+    setUploadError('');
+
+    const imageFiles = Array.from(files).filter(isValidImage);
+    if (imageFiles.length === 0) {
+      setUploadError('请选择图片文件（不支持其他格式）');
+      return;
+    }
+    if (imageFiles.length < files.length) {
+      setUploadError(`已过滤 ${files.length - imageFiles.length} 个非图片文件`);
+    }
+
     const remaining = MAX_IMAGES - images.length;
-    const selectedFiles = Array.from(files).slice(0, remaining);
+    const selectedFiles = imageFiles.slice(0, remaining);
 
     if (selectedFiles.length === 0) {
-      alert(`最多上传 ${MAX_IMAGES} 张图片`);
+      setUploadError(`最多上传 ${MAX_IMAGES} 张图片`);
       return;
     }
 
@@ -37,9 +53,11 @@ export default function ImageUploader({ images, onChange }) {
           label: `@${String(images.length + i + 1).padStart(2, '0')}`,
         }));
         onChange([...images, ...reindexed]);
+      } else {
+        setUploadError(data.error || '上传失败');
       }
     } catch (err) {
-      console.error('Upload failed:', err);
+      setUploadError('上传失败，请检查网络连接');
     } finally {
       setUploading(false);
     }
@@ -76,6 +94,8 @@ export default function ImageUploader({ images, onChange }) {
           拖拽上传，最多 {MAX_IMAGES} 张（已上传 {images.length} 张）
         </span>
       </div>
+
+      {uploadError && <div className="uploader-error">{uploadError}</div>}
 
       <div className="uploader-grid">
         {images.map((img, index) => (

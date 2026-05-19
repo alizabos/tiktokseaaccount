@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ImageUploader from './components/ImageUploader';
 import PromptInput from './components/PromptInput';
 import ResultGallery from './components/ResultGallery';
@@ -14,6 +14,8 @@ const SIZES = [
 
 const API_BASE = '/api';
 const LS_KEY = 'tiktokseaaccount_apikey';
+const LS_RESULTS_KEY = 'tiktokseaaccount_results';
+const MAX_CACHED_RESULTS = 20;
 
 export default function App() {
   const [apiKey, setApiKey] = useState(() => {
@@ -24,16 +26,46 @@ export default function App() {
   const [prompt, setPrompt] = useState('');
   const [size, setSize] = useState('1024x1024');
   const [count, setCount] = useState(1);
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState(() => {
+    try {
+      const cached = localStorage.getItem(LS_RESULTS_KEY);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [previewImage, setPreviewImage] = useState(null);
   const resultRef = useRef(null);
 
-  const handleSaveKey = (val) => {
+  const handleKeyInputChange = (val) => {
     setApiKey(val);
-    localStorage.setItem(LS_KEY, val);
   };
+
+  const handleKeyConfirm = () => {
+    localStorage.setItem(LS_KEY, apiKey);
+    setShowKeyInput(false);
+  };
+
+  useEffect(() => {
+    try {
+      const capped = results.slice(0, MAX_CACHED_RESULTS);
+      localStorage.setItem(LS_RESULTS_KEY, JSON.stringify(capped));
+    } catch {
+      // localStorage full, ignore
+    }
+  }, [results]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && previewImage) {
+        setPreviewImage(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewImage]);
 
   const handleImagesChange = (newImages) => {
     setImages(newImages);
@@ -50,6 +82,9 @@ export default function App() {
       setShowKeyInput(true);
       return;
     }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 180000);
 
     setLoading(true);
     setError('');
@@ -71,6 +106,7 @@ export default function App() {
           n: count,
           apiKey: apiKey.trim(),
         }),
+        signal: controller.signal,
       });
 
       const data = await response.json();
@@ -85,8 +121,13 @@ export default function App() {
         resultRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 200);
     } catch (err) {
-      setError('网络错误：' + err.message);
+      if (err.name === 'AbortError') {
+        setError('请求超时（3分钟），请稍后重试');
+      } else {
+        setError('网络错误：' + err.message);
+      }
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   };
@@ -113,12 +154,12 @@ export default function App() {
                 type="password"
                 placeholder="输入 API Key (sk-...)"
                 value={apiKey}
-                onChange={(e) => handleSaveKey(e.target.value)}
+                onChange={(e) => handleKeyInputChange(e.target.value)}
                 autoFocus
               />
               <button
                 className="key-done"
-                onClick={() => setShowKeyInput(false)}
+                onClick={handleKeyConfirm}
               >
                 ✓
               </button>
