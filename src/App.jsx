@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import ImageUploader from './components/ImageUploader';
 import PromptInput from './components/PromptInput';
 import ResultGallery from './components/ResultGallery';
+import VideoModule from './components/VideoModule';
 
 const SIZES = [
   { label: '1:1 方形', value: '1024x1024' },
@@ -18,6 +19,7 @@ const LS_RESULTS_KEY = 'tiktokseaaccount_results';
 const MAX_CACHED_RESULTS = 20;
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState('image'); // 'image' | 'video'
   const [apiKey, setApiKey] = useState(() => {
     return localStorage.getItem(LS_KEY) || '';
   });
@@ -135,8 +137,23 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🎨 图片生成</h1>
-        <span className="model-badge">gpt-image-2-all</span>
+        <h1>🎨 TikTok 内容工厂</h1>
+
+        <div className="tab-bar">
+          <button
+            className={`tab-btn ${activeTab === 'image' ? 'active' : ''}`}
+            onClick={() => setActiveTab('image')}
+          >
+            🖼️ 图片
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'video' ? 'active' : ''}`}
+            onClick={() => setActiveTab('video')}
+            style={{ display: 'none' }}
+          >
+            🎬 视频
+          </button>
+        </div>
 
         <div className="key-area">
           {!showKeyInput ? (
@@ -169,31 +186,37 @@ export default function App() {
       </header>
 
       <main className="app-main">
-        <ImageUploader images={images} onChange={handleImagesChange} />
+        {activeTab === 'image' ? (
+          <>
+            <ImageUploader images={images} onChange={handleImagesChange} />
 
-        <PromptInput
-          prompt={prompt}
-          onPromptChange={setPrompt}
-          size={size}
-          onSizeChange={setSize}
-          count={count}
-          onCountChange={setCount}
-          onGenerate={handleGenerate}
-          loading={loading}
-          sizes={SIZES}
-          imageCount={images.length}
-          images={images}
-          apiKey={apiKey}
-        />
+            <PromptInput
+              prompt={prompt}
+              onPromptChange={setPrompt}
+              size={size}
+              onSizeChange={setSize}
+              count={count}
+              onCountChange={setCount}
+              onGenerate={handleGenerate}
+              loading={loading}
+              sizes={SIZES}
+              imageCount={images.length}
+              images={images}
+              apiKey={apiKey}
+            />
 
-        {error && <div className="error-message">⚠️ {error}</div>}
+            {error && <div className="error-message">⚠️ {error}</div>}
 
-        <ResultGallery
-          results={results}
-          loading={loading}
-          onPreview={setPreviewImage}
-          resultRef={resultRef}
-        />
+            <ResultGallery
+              results={results}
+              loading={loading}
+              onPreview={setPreviewImage}
+              resultRef={resultRef}
+            />
+          </>
+        ) : (
+          <VideoModule apiKey={apiKey} />
+        )}
       </main>
 
       {previewImage && (
