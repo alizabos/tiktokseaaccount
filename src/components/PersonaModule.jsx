@@ -71,6 +71,38 @@ export default function PersonaModule({ apiKey }) {
     avatar: '',
   });
 
+  const [personalityTags, setPersonalityTags] = useState([]);
+  const [personalityInput, setPersonalityInput] = useState('');
+  const personalityInputRef = useRef(null);
+
+  const addPersonalityTag = (value) => {
+    const tag = value.trim();
+    if (!tag) return;
+    if (personalityTags.includes(tag)) return;
+    setPersonalityTags((prev) => [...prev, tag]);
+    setPersonalityInput('');
+  };
+
+  const removePersonalityTag = (index) => {
+    setPersonalityTags((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handlePersonalityKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addPersonalityTag(personalityInput);
+    }
+    if (e.key === 'Backspace' && !personalityInput && personalityTags.length > 0) {
+      removePersonalityTag(personalityTags.length - 1);
+    }
+  };
+
+  const handlePersonalityBlur = () => {
+    if (personalityInput.trim()) {
+      addPersonalityTag(personalityInput);
+    }
+  };
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(LS_PERSONA_KEY);
@@ -78,6 +110,10 @@ export default function PersonaModule({ apiKey }) {
         const p = JSON.parse(saved);
         setProfile(p);
         setForm(p);
+        if (p.personality) {
+          const tags = p.personality.split(/[,，]/).map((t) => t.trim()).filter(Boolean);
+          setPersonalityTags(tags);
+        }
       } else {
         setShowProfileForm(true);
       }
@@ -129,7 +165,7 @@ export default function PersonaModule({ apiKey }) {
       setError('请至少填写名称和城市');
       return;
     }
-    const saved = { ...form };
+    const saved = { ...form, personality: personalityTags.join(', ') };
     localStorage.setItem(LS_PERSONA_KEY, JSON.stringify(saved));
     setProfile(saved);
     setShowProfileForm(false);
@@ -138,6 +174,12 @@ export default function PersonaModule({ apiKey }) {
 
   const handleEditProfile = () => {
     setForm(profile || {});
+    if (profile?.personality) {
+      const tags = profile.personality.split(/[,，]/).map((t) => t.trim()).filter(Boolean);
+      setPersonalityTags(tags);
+    } else {
+      setPersonalityTags([]);
+    }
     setShowProfileForm(true);
   };
 
@@ -403,14 +445,36 @@ export default function PersonaModule({ apiKey }) {
 
           <div className="persona-form-field full-width">
             <label className="persona-form-label">性格标签</label>
-            <input
-              className="persona-form-input"
-              type="text"
-              placeholder="如：温柔、热爱生活、极简、自律"
-              value={form.personality}
-              onChange={(e) => handleFormChange('personality', e.target.value)}
-            />
-            <span className="persona-form-hint">用逗号分隔多个标签</span>
+            <div
+              className="persona-tag-input-wrap"
+              onClick={() => personalityInputRef.current?.focus()}
+            >
+              {personalityTags.map((tag, i) => (
+                <span key={i} className="persona-tag">
+                  {tag}
+                  <button
+                    className="persona-tag-remove"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removePersonalityTag(i);
+                    }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              <input
+                ref={personalityInputRef}
+                className="persona-tag-input"
+                type="text"
+                placeholder={personalityTags.length === 0 ? '输入标签后按回车添加' : ''}
+                value={personalityInput}
+                onChange={(e) => setPersonalityInput(e.target.value)}
+                onKeyDown={handlePersonalityKeyDown}
+                onBlur={handlePersonalityBlur}
+              />
+            </div>
+            <span className="persona-form-hint">按回车或逗号添加标签，Backspace 删除</span>
           </div>
 
           <div className="persona-form-field full-width">
