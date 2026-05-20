@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+const API_BASE = '/api';
 
 const LS_PERSONA_KEY = 'tiktokseaaccount_persona';
 
@@ -50,6 +52,8 @@ export default function PersonaModule({ apiKey }) {
   const [generatingIndex, setGeneratingIndex] = useState(-1);
   const [totalImageCount, setTotalImageCount] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -62,6 +66,9 @@ export default function PersonaModule({ apiKey }) {
     dietPreference: '',
     activityPreference: '',
     languageStyle: '松弛',
+    race: '',
+    language: '',
+    avatar: '',
   });
 
   useEffect(() => {
@@ -81,6 +88,40 @@ export default function PersonaModule({ apiKey }) {
 
   const handleFormChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('请选择图片文件');
+      return;
+    }
+
+    setAvatarUploading(true);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('images', file);
+
+      const res = await fetch(`${API_BASE}/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.success && data.images?.length > 0) {
+        handleFormChange('avatar', data.images[0].dataUrl || data.images[0].url);
+      } else {
+        setError(data.error || '头像上传失败');
+      }
+    } catch (err) {
+      setError('头像上传失败，请检查网络连接');
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   const saveProfile = () => {
@@ -233,6 +274,46 @@ export default function PersonaModule({ apiKey }) {
         </div>
 
         <div className="persona-profile-form">
+          <div className="persona-avatar-upload">
+            <div
+              className={`persona-avatar-preview ${avatarUploading ? 'uploading' : ''}`}
+              onClick={() => avatarInputRef.current?.click()}
+            >
+              {form.avatar ? (
+                <img src={form.avatar} alt="头像" className="persona-avatar-img" />
+              ) : (
+                <div className="persona-avatar-placeholder">
+                  {avatarUploading ? (
+                    <span className="uploading-spinner" />
+                  ) : (
+                    <>
+                      <span className="persona-avatar-icon">📷</span>
+                      <span className="persona-avatar-text">上传头像</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+            {form.avatar && (
+              <button
+                className="persona-avatar-clear"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFormChange('avatar', '');
+                }}
+              >
+                移除
+              </button>
+            )}
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              style={{ display: 'none' }}
+            />
+          </div>
+
           <div className="persona-form-grid">
             <div className="persona-form-field">
               <label className="persona-form-label">名称 *</label>
@@ -298,6 +379,26 @@ export default function PersonaModule({ apiKey }) {
                 ))}
               </select>
             </div>
+            <div className="persona-form-field">
+              <label className="persona-form-label">种族</label>
+              <input
+                className="persona-form-input"
+                type="text"
+                placeholder="如：东亚、高加索、非洲"
+                value={form.race}
+                onChange={(e) => handleFormChange('race', e.target.value)}
+              />
+            </div>
+            <div className="persona-form-field">
+              <label className="persona-form-label">语言</label>
+              <input
+                className="persona-form-input"
+                type="text"
+                placeholder="如：中文、英语、日语"
+                value={form.language}
+                onChange={(e) => handleFormChange('language', e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="persona-form-field full-width">
@@ -357,6 +458,10 @@ export default function PersonaModule({ apiKey }) {
     );
   }
 
+  if (!profile) {
+    return null;
+  }
+
   if (!daily) {
     return (
       <div className="persona-module">
@@ -367,7 +472,13 @@ export default function PersonaModule({ apiKey }) {
 
         <div className="persona-profile-card">
           <div className="persona-profile-top">
-            <div className="persona-profile-avatar">🎭</div>
+            <div className="persona-profile-avatar">
+              {profile.avatar ? (
+                <img src={profile.avatar} alt={profile.name} className="persona-avatar-img" />
+              ) : (
+                '🎭'
+              )}
+            </div>
             <div className="persona-profile-info">
               <div className="persona-profile-name">{profile.name}</div>
               <div className="persona-profile-meta">
@@ -398,6 +509,8 @@ export default function PersonaModule({ apiKey }) {
             {profile.dietPreference && <span>🍽️ {profile.dietPreference}</span>}
             {profile.activityPreference && <span>🚶 {profile.activityPreference}</span>}
             {profile.languageStyle && <span>💬 {LANGUAGE_STYLES.find((s) => s.value === profile.languageStyle)?.label || profile.languageStyle}</span>}
+            {profile.race && <span>🌍 {profile.race}</span>}
+            {profile.language && <span>🗣️ {profile.language}</span>}
           </div>
         </div>
 

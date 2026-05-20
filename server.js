@@ -670,7 +670,7 @@ app.post('/api/persona/generate', async (req, res) => {
   "location_note": "今日主要活动区域的一句话描述"
 }
 
-要求：所有内容符合人设性格/职业/偏好；根据天气决定穿搭厚度和风格；根据城市特色设计活动地点；餐食符合饮食偏好；活动安排合理有节奏感；文案有人设语言风格；image_prompt 必须是英文且详细；只输出 JSON。`;
+要求：所有内容符合人设性格/职业/偏好；根据天气决定穿搭厚度和风格；根据城市特色设计活动地点；餐食符合饮食偏好；活动安排合理有节奏感；文案有人设语言风格；image_prompt 必须根据人物的种族(race)特征生成匹配的人物外貌描述；语言偏好(language)如为中文则caption和描述用中文，如为其他语言可混合使用；只输出 JSON。`;
 
     const userContent = `人设档案：
 - 名称：${profile.name || '未设定'}
@@ -678,6 +678,8 @@ app.post('/api/persona/generate', async (req, res) => {
 - 性别：${profile.gender || '未设定'}
 - 城市：${profile.city || '未设定'}
 - 职业：${profile.occupation || '未设定'}
+- 种族：${profile.race || '未设定'}
+- 语言：${profile.language || '未设定'}
 - 性格标签：${profile.personality || '未设定'}
 - 穿搭风格：${profile.stylePreference || '未设定'}
 - 饮食偏好：${profile.dietPreference || '未设定'}
