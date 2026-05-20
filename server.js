@@ -562,8 +562,194 @@ app.post('/api/video/generate-storyboard', async (req, res) => {
   }
 });
 
+// ===== 人设模块 =====
+
+app.get('/api/weather', async (req, res) => {
+  try {
+    const { city } = req.query;
+    if (!city) {
+      return res.status(400).json({ success: false, error: '缺少 city 参数' });
+    }
+
+    const geoRes = await fetchWithTimeout(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh`,
+      {},
+      10000,
+    );
+    const geoData = await geoRes.json();
+
+    if (!geoData.results || geoData.results.length === 0) {
+      return res.status(400).json({ success: false, error: `未找到城市: ${city}` });
+    }
+
+    const { latitude, longitude, name, country } = geoData.results[0];
+
+    const weatherRes = await fetchWithTimeout(
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max&timezone=auto&forecast_days=1`,
+      {},
+      10000,
+    );
+    const weatherData = await weatherRes.json();
+
+    const daily = weatherData.daily;
+    res.json({
+      success: true,
+      weather: {
+        city: name,
+        country: country || '',
+        maxTemp: daily.temperature_2m_max[0],
+        minTemp: daily.temperature_2m_min[0],
+        weatherCode: daily.weather_code[0],
+        precipProbability: daily.precipitation_probability_max[0],
+        date: daily.time[0],
+      },
+    });
+  } catch (err) {
+    console.error('Weather error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/persona/generate', async (req, res) => {
+  try {
+    const { profile, weather, apiKey: clientApiKey } = req.body;
+
+    if (!profile) {
+      return res.status(400).json({ success: false, error: '缺少人设档案' });
+    }
+
+    const apiKey = clientApiKey || process.env.YUNWU_API_KEY;
+    if (!apiKey || apiKey === '你的API_KEY') {
+      return res.status(400).json({ success: false, error: '请先设置 API Key' });
+    }
+
+    const weatherInfo = weather
+      ? `天气：${weather.city}，最高温 ${weather.maxTemp}°C，最低温 ${weather.minTemp}°C，天气代码 ${weather.weatherCode}，降水概率 ${weather.precipProbability}%`
+      : '天气：未知（用户未设置城市或获取失败）';
+
+    const systemPrompt = `你是一个专业的AI虚拟人设生活设计师。根据用户的虚拟人设档案和当地天气，生成这个人设今天一整天的"衣食住行"详细内容。
+
+输出必须是严格的 JSON 格式，不要加任何 markdown 代码块标记或其他文字：
+
+{
+  "date": "今天的日期",
+  "outfit": {
+    "top": "上衣描述",
+    "bottom": "下装描述",
+    "shoes": "鞋子描述",
+    "accessories": "配饰描述",
+    "overall": "整体穿搭一句话描述",
+    "image_prompt": "英文图片生成提示词，用于AI生成穿搭图片，写实风格，包含人物穿着、场景、光线、构图，以'A fashion photo of'开头"
+  },
+  "meals": {
+    "breakfast": {
+      "food": "食物名称",
+      "description": "简短的中文描述",
+      "image_prompt": "英文美食摄影提示词，以'A food photo of'开头，精美摆拍风格"
+    },
+    "lunch": {
+      "food": "食物名称",
+      "description": "简短的中文描述",
+      "image_prompt": "英文美食摄影提示词"
+    },
+    "dinner": {
+      "food": "食物名称",
+      "description": "简短的中文描述",
+      "image_prompt": "英文美食摄影提示词"
+    }
+  },
+  "activities": [
+    {
+      "time": "HH:MM",
+      "location": "地点名称",
+      "description": "活动的中文描述, 20字以内",
+      "image_prompt": "英文生活场景拍摄提示词"
+    }
+  ],
+  "caption": "适合发布到社交媒体的文案（中文，2-4句话，带2-3个话题标签，符合人设语言风格）",
+  "location_note": "今日主要活动区域的一句话描述"
+}
+
+要求：所有内容符合人设性格/职业/偏好；根据天气决定穿搭厚度和风格；根据城市特色设计活动地点；餐食符合饮食偏好；活动安排合理有节奏感；文案有人设语言风格；image_prompt 必须是英文且详细；只输出 JSON。`;
+
+    const userContent = `人设档案：
+- 名称：${profile.name || '未设定'}
+- 年龄：${profile.age || '未设定'}
+- 性别：${profile.gender || '未设定'}
+- 城市：${profile.city || '未设定'}
+- 职业：${profile.occupation || '未设定'}
+- 性格标签：${profile.personality || '未设定'}
+- 穿搭风格：${profile.stylePreference || '未设定'}
+- 饮食偏好：${profile.dietPreference || '未设定'}
+- 活动偏好：${profile.activityPreference || '未设定'}
+- 语言风格：${profile.languageStyle || '未设定'}
+
+${weatherInfo}
+
+请生成这个人设今日的完整日常。`;
+
+    console.log('Generating persona daily...');
+
+    const response = await fetchWithTimeout(
+      `${process.env.YUNWU_API_BASE || 'https://yunwu.ai'}/v1/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-5.5',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userContent },
+          ],
+          temperature: 0.8,
+          max_tokens: 4000,
+        }),
+      },
+      60000,
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Persona generate error:', data);
+      return res.status(response.status).json({
+        success: false,
+        error: data.error?.message || JSON.stringify(data),
+      });
+    }
+
+    const content = data.choices?.[0]?.message?.content || '';
+    let daily;
+    try {
+      daily = JSON.parse(content.trim());
+    } catch {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          daily = JSON.parse(jsonMatch[0]);
+        } catch {
+          return res.status(500).json({ success: false, error: 'AI 返回格式异常，请重试' });
+        }
+      } else {
+        return res.status(500).json({ success: false, error: 'AI 返回格式异常，请重试' });
+      }
+    }
+
+    res.json({ success: true, daily });
+  } catch (err) {
+    console.error('Persona generate error:', err);
+    const message = err.name === 'AbortError' ? '请求超时，请稍后重试' : err.message;
+    res.status(500).json({ success: false, error: message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 后端服务已启动: http://localhost:${PORT}`);
   console.log(`📁 上传目录: ${uploadsDir}`);
   console.log(`🎬 视频模块已启用`);
+  console.log(`🎭 人设模块已启用`);
 });

@@ -3,6 +3,7 @@ import ImageUploader from './components/ImageUploader';
 import PromptInput from './components/PromptInput';
 import ResultGallery from './components/ResultGallery';
 import VideoModule from './components/VideoModule';
+import PersonaModule from './components/PersonaModule';
 
 const SIZES = [
   { label: '1:1 方形', value: '1024x1024' },
@@ -153,6 +154,12 @@ export default function App() {
           >
             🎬 视频
           </button>
+          <button
+            className={`tab-btn ${activeTab === 'persona' ? 'active' : ''}`}
+            onClick={() => setActiveTab('persona')}
+          >
+            🎭 人设
+          </button>
         </div>
 
         <div className="key-area">
@@ -214,6 +221,8 @@ export default function App() {
               resultRef={resultRef}
             />
           </>
+        ) : activeTab === 'persona' ? (
+          <PersonaModule apiKey={apiKey} />
         ) : (
           <VideoModule apiKey={apiKey} />
         )}
