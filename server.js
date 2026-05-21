@@ -668,7 +668,11 @@ app.post('/api/persona/generate', async (req, res) => {
       "image_prompt": "英文生活场景拍摄提示词。必须包含完整的角色外貌(character_appearance)和今日穿搭(outfit_desc)，因为人物全天穿着同一套衣服。必须以'A lifestyle photo of'开头。格式：'A lifestyle photo of [完整character_appearance], [完整outfit_desc], [活动场景动作], [光线环境], photorealistic'"
     }
   ],
-  "caption": "适合发布到社交媒体的文案（中文，2-4句话，带2-3个话题标签，符合人设语言风格）",
+  "caption": {
+    "zh": "中文文案（2-4句话，带2-3个话题标签，符合人设语言风格）",
+    "en": "English translation of the caption (2-4 sentences, with 2-3 hashtags)",
+    "ms": "Malay translation of the caption (2-4 ayat, dengan 2-3 hashtag)"
+  },
   "location_note": "今日主要活动区域的一句话描述"
 }
 
@@ -720,7 +724,7 @@ ${weatherInfo}
           max_tokens: 4000,
         }),
       },
-      60000,
+      180000,
     );
 
     const data = await response.json();

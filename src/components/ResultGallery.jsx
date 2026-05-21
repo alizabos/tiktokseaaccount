@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { IconZoom, IconDownload } from './Icons';
+import { IconZoom, IconDownload, IconTrash, IconPersona } from './Icons';
 
-export default function ResultGallery({ results, loading, onPreview, resultRef }) {
+export default function ResultGallery({ results, loading, onPreview, resultRef, onDelete, onSetAsAvatar }) {
   const [downloadingIdx, setDownloadingIdx] = useState(null);
 
   const handleDownload = async (url, index) => {
@@ -44,6 +44,22 @@ export default function ResultGallery({ results, loading, onPreview, resultRef }
       <div className="result-grid">
         {results.map((item, index) => (
           <div key={index} className="result-card">
+            <div className="result-hover-actions">
+              <button
+                className="result-action-btn action-avatar"
+                onClick={() => onSetAsAvatar && onSetAsAvatar(item.url)}
+                title="设为角色头像"
+              >
+                <IconPersona size={16} />
+              </button>
+              <button
+                className="result-action-btn action-delete"
+                onClick={() => onDelete && onDelete(index)}
+                title="删除"
+              >
+                <IconTrash size={16} />
+              </button>
+            </div>
             <img
               src={item.url}
               alt={item.revised_prompt || `生成结果 ${index + 1}`}

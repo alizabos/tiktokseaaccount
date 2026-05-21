@@ -45,7 +45,7 @@ function getWeatherDesc(code) {
   return '雷暴';
 }
 
-export default function PersonaModule({ apiKey }) {
+export default function PersonaModule({ apiKey, pendingAvatar, onAvatarConsumed }) {
   const [profile, setProfile] = useState(null);
   const [showProfileForm, setShowProfileForm] = useState(false);
   const [daily, setDaily] = useState(null);
@@ -155,6 +155,14 @@ export default function PersonaModule({ apiKey }) {
       setShowProfileForm(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (pendingAvatar) {
+      setForm((prev) => ({ ...prev, avatar: pendingAvatar }));
+      setShowProfileForm(true);
+      onAvatarConsumed?.();
+    }
+  }, [pendingAvatar]);
 
   const handleFormChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -381,7 +389,10 @@ export default function PersonaModule({ apiKey }) {
 
   const handleCopyCaption = () => {
     if (daily?.caption) {
-      navigator.clipboard.writeText(daily.caption).then(() => {
+      const text = typeof daily.caption === 'object'
+        ? [daily.caption.zh, daily.caption.en, daily.caption.ms].filter(Boolean).join('\n\n')
+        : daily.caption;
+      navigator.clipboard.writeText(text).then(() => {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       });
@@ -871,7 +882,30 @@ export default function PersonaModule({ apiKey }) {
           <div className="persona-daily-section">
             <div className="persona-daily-section-title"><IconChat size={18} /> 发布文案</div>
             <div className="persona-caption">
-              <div className="persona-caption-text">{daily.caption}</div>
+              {typeof daily.caption === 'object' ? (
+                <div className="persona-caption-multi">
+                  {daily.caption.zh && (
+                    <div className="persona-caption-block">
+                      <span className="persona-caption-lang-tag">中文</span>
+                      <div className="persona-caption-text">{daily.caption.zh}</div>
+                    </div>
+                  )}
+                  {daily.caption.en && (
+                    <div className="persona-caption-block">
+                      <span className="persona-caption-lang-tag">English</span>
+                      <div className="persona-caption-text">{daily.caption.en}</div>
+                    </div>
+                  )}
+                  {daily.caption.ms && (
+                    <div className="persona-caption-block">
+                      <span className="persona-caption-lang-tag">Bahasa Melayu</span>
+                      <div className="persona-caption-text">{daily.caption.ms}</div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="persona-caption-text">{daily.caption}</div>
+              )}
               <button className="persona-copy-btn" onClick={handleCopyCaption}>
                 {copied ? <><IconCheck size={16} /> 已复制</> : <><IconCopy size={16} /> 复制文案</>}
               </button>

@@ -806,6 +806,48 @@ body {
   overflow: hidden;
   transition: all var(--transition-base);
   box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.result-hover-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 2;
+}
+
+.result-card:hover .result-hover-actions {
+  opacity: 1;
+}
+
+.result-action-btn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  border: none;
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+  backdrop-filter: blur(4px);
+}
+
+.result-action-btn.action-avatar:hover {
+  background: #1c3a5e;
+  color: #58a6ff;
+  transform: scale(1.15);
+}
+
+.result-action-btn.action-delete:hover {
+  background: #da3633;
+  transform: scale(1.15);
 }
 
 .result-card:hover {
@@ -2053,13 +2095,42 @@ body {
   padding: var(--space-4);
 }
 
+.persona-caption-multi {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: var(--space-4);
+}
+
+.persona-caption-block {
+  border-bottom: 1px solid var(--border-default);
+  padding-bottom: 12px;
+}
+
+.persona-caption-block:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.persona-caption-lang-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #58a6ff;
+  background: #1c3a5e;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
 .persona-caption-text {
   font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
-  margin-bottom: var(--space-4);
 }
 
 .persona-copy-btn {

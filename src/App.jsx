@@ -41,6 +41,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [previewImage, setPreviewImage] = useState(null);
+  const [pendingAvatar, setPendingAvatar] = useState(null);
   const resultRef = useRef(null);
 
   const handleKeyInputChange = (val) => {
@@ -74,6 +75,15 @@ export default function App() {
   const handleImagesChange = (newImages) => {
     setImages(newImages);
     setError('');
+  };
+
+  const handleDeleteResult = (index) => {
+    setResults((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSetAsAvatar = (url) => {
+    setPendingAvatar(url);
+    setActiveTab('persona');
   };
 
   const handleGenerate = async () => {
@@ -220,10 +230,12 @@ export default function App() {
               loading={loading}
               onPreview={setPreviewImage}
               resultRef={resultRef}
+              onDelete={handleDeleteResult}
+              onSetAsAvatar={handleSetAsAvatar}
             />
           </>
         ) : activeTab === 'persona' ? (
-          <PersonaModule apiKey={apiKey} />
+          <PersonaModule apiKey={apiKey} pendingAvatar={pendingAvatar} onAvatarConsumed={() => setPendingAvatar(null)} />
         ) : (
           <VideoModule apiKey={apiKey} />
         )}
