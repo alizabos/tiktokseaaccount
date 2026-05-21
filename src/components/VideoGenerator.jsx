@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { IconRocket, IconAlert, IconDownload } from './Icons';
 
 const VIDEO_MODELS = [
   { label: 'Veo 3.1 Fast', value: 'veo_3_1-fast', desc: '快速出片' },
@@ -129,7 +130,7 @@ export default function VideoGenerator({ apiKey, script, storyboardImages }) {
   return (
     <div className="video-generator">
       <div className="video-section-header">
-        <h2>🎬 视频生成</h2>
+        <h2><IconRocket size={22} /> 视频生成</h2>
         <p className="section-desc">使用 Veo 3.1 系列模型生成最终视频</p>
       </div>
 
@@ -188,7 +189,7 @@ export default function VideoGenerator({ apiKey, script, storyboardImages }) {
             {polling ? '生成中，请稍候...' : '提交任务中...'}
           </>
         ) : (
-          '🎬 生成视频'
+          <><IconRocket size={16} /> 生成视频</>
         )}
       </button>
 
@@ -199,7 +200,7 @@ export default function VideoGenerator({ apiKey, script, storyboardImages }) {
         </div>
       )}
 
-      {error && <div className="error-message">⚠️ {error}</div>}
+      {error && <div className="error-message"><IconAlert size={16} /> {error}</div>}
 
       {videoUrl && (
         <div className="video-result">
@@ -219,7 +220,7 @@ export default function VideoGenerator({ apiKey, script, storyboardImages }) {
               rel="noopener noreferrer"
               download
             >
-              ⬇️ 下载视频
+              <><IconDownload size={16} /> 下载视频</>
             </a>
           </div>
         </div>

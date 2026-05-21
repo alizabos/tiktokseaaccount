@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { IconChat, IconRocket } from './Icons';
 
 export default function PromptInput({
   prompt,
@@ -216,7 +217,7 @@ export default function PromptInput({
   return (
     <div className="prompt-input">
       <div className="prompt-input-label">
-        💬 Prompt
+        <span className="prompt-input-label-text"><IconChat size={16} /> Prompt</span>
         <span className="hint-text">输入 @ 选择图片 · Cmd+Enter 发送</span>
       </div>
 
@@ -386,7 +387,7 @@ export default function PromptInput({
               生成中...
             </>
           ) : (
-            '🚀 生成图片'
+            <><IconRocket size={16} /> 生成图片</>
           )}
         </button>
       </div>

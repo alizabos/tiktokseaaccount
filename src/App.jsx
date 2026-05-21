@@ -4,6 +4,7 @@ import PromptInput from './components/PromptInput';
 import ResultGallery from './components/ResultGallery';
 import VideoModule from './components/VideoModule';
 import PersonaModule from './components/PersonaModule';
+import { IconImage, IconPersona, IconKey, IconCheck, IconX, IconRocket, IconAlert } from './components/Icons';
 
 const SIZES = [
   { label: '1:1 方形', value: '1024x1024' },
@@ -138,27 +139,27 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🎨 TikTok 内容工厂</h1>
+        <h1><span className="header-icon"><IconImage size={28} /></span>TikTok 内容工厂</h1>
 
         <div className="tab-bar">
           <button
             className={`tab-btn ${activeTab === 'image' ? 'active' : ''}`}
             onClick={() => setActiveTab('image')}
           >
-            🖼️ 图片
+            <span className="tab-icon"><IconImage size={18} /></span>图片
           </button>
           <button
             className={`tab-btn ${activeTab === 'video' ? 'active' : ''}`}
             onClick={() => setActiveTab('video')}
             style={{ display: 'none' }}
           >
-            🎬 视频
+            <span className="tab-icon"><IconRocket size={18} /></span>视频
           </button>
           <button
             className={`tab-btn ${activeTab === 'persona' ? 'active' : ''}`}
             onClick={() => setActiveTab('persona')}
           >
-            🎭 人设
+            <span className="tab-icon"><IconPersona size={18} /></span>人设
           </button>
         </div>
 
@@ -169,7 +170,7 @@ export default function App() {
               onClick={() => setShowKeyInput(true)}
               title={apiKey ? '已设置 API Key，点击可修改' : '点击设置 API Key'}
             >
-              {apiKey ? '🔑 已设置 Key' : '⚠️ 设置 Key'}
+              {apiKey ? <><IconKey size={16} />已设置 Key</> : <><IconKey size={16} />设置 Key</>}
             </button>
           ) : (
             <div className="key-input-group">
@@ -185,7 +186,7 @@ export default function App() {
                 className="key-done"
                 onClick={handleKeyConfirm}
               >
-                ✓
+                <IconCheck size={16} />
               </button>
             </div>
           )}
@@ -212,7 +213,7 @@ export default function App() {
               apiKey={apiKey}
             />
 
-            {error && <div className="error-message">⚠️ {error}</div>}
+            {error && <div className="error-message"><IconAlert size={16} /> {error}</div>}
 
             <ResultGallery
               results={results}
@@ -231,7 +232,7 @@ export default function App() {
       {previewImage && (
         <div className="preview-overlay" onClick={() => setPreviewImage(null)}>
           <button className="preview-close" onClick={() => setPreviewImage(null)}>
-            ✕
+            <IconX size={20} />
           </button>
           <img
             src={previewImage}

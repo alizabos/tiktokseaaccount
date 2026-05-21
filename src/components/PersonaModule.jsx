@@ -1,4 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import {
+  IconPersona, IconCamera, IconSave, IconCalendar, IconLocation,
+  IconBriefcase, IconShirt, IconUtensils, IconWalk, IconChat,
+  IconGlobe, IconSpeak, IconCopy, IconCheck, IconRefresh, IconPalette,
+  IconSun, IconCloud, IconCloudRain, IconCloudSnow, IconCloudFog, IconAlert, IconEdit,
+} from './Icons';
 
 const API_BASE = '/api';
 
@@ -13,17 +19,17 @@ const LANGUAGE_STYLES = [
   { value: '酷飒', label: '酷飒个性' },
 ];
 
-function getWeatherEmoji(code) {
-  if (code <= 1) return '☀️';
-  if (code === 2) return '⛅';
-  if (code === 3) return '☁️';
-  if (code <= 48) return '🌫️';
-  if (code <= 57) return '🌧️';
-  if (code <= 67) return '🌧️';
-  if (code <= 77) return '❄️';
-  if (code <= 82) return '🌧️';
-  if (code <= 86) return '🌨️';
-  return '⛈️';
+function getWeatherIcon(code) {
+  if (code <= 1) return <IconSun size={16} />;
+  if (code === 2) return <IconCloud size={16} />;
+  if (code === 3) return <IconCloud size={16} />;
+  if (code <= 48) return <IconCloudFog size={16} />;
+  if (code <= 57) return <IconCloudRain size={16} />;
+  if (code <= 67) return <IconCloudRain size={16} />;
+  if (code <= 77) return <IconCloudSnow size={16} />;
+  if (code <= 82) return <IconCloudRain size={16} />;
+  if (code <= 86) return <IconCloudSnow size={16} />;
+  return <IconCloudRain size={16} />;
 }
 
 function getWeatherDesc(code) {
@@ -54,6 +60,7 @@ export default function PersonaModule({ apiKey }) {
   const [copied, setCopied] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef(null);
+  const [previewImage, setPreviewImage] = useState(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -75,33 +82,52 @@ export default function PersonaModule({ apiKey }) {
   const [personalityInput, setPersonalityInput] = useState('');
   const personalityInputRef = useRef(null);
 
-  const addPersonalityTag = (value) => {
-    const tag = value.trim();
-    if (!tag) return;
-    if (personalityTags.includes(tag)) return;
-    setPersonalityTags((prev) => [...prev, tag]);
-    setPersonalityInput('');
-  };
+  const [raceTags, setRaceTags] = useState([]);
+  const [raceInput, setRaceInput] = useState('');
+  const raceInputRef = useRef(null);
 
-  const removePersonalityTag = (index) => {
-    setPersonalityTags((prev) => prev.filter((_, i) => i !== index));
-  };
+  const [languageTags, setLanguageTags] = useState([]);
+  const [languageInput, setLanguageInput] = useState('');
+  const languageInputRef = useRef(null);
 
-  const handlePersonalityKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      addPersonalityTag(personalityInput);
-    }
-    if (e.key === 'Backspace' && !personalityInput && personalityTags.length > 0) {
-      removePersonalityTag(personalityTags.length - 1);
-    }
-  };
+  const createTagHandlers = (tags, setTags, input, setInput) => ({
+    add: (value) => {
+      const tag = value.trim();
+      if (!tag) return;
+      if (tags.includes(tag)) return;
+      setTags((prev) => [...prev, tag]);
+      setInput('');
+    },
+    remove: (index) => {
+      setTags((prev) => prev.filter((_, i) => i !== index));
+    },
+    keyDown: (e) => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        const tag = input.trim();
+        if (!tag) return;
+        if (tags.includes(tag)) return;
+        setTags((prev) => [...prev, tag]);
+        setInput('');
+      }
+      if (e.key === 'Backspace' && !input && tags.length > 0) {
+        setTags((prev) => prev.filter((_, i) => i !== tags.length - 1));
+      }
+    },
+    blur: () => {
+      if (input.trim()) {
+        const tag = input.trim();
+        if (!tags.includes(tag)) {
+          setTags((prev) => [...prev, tag]);
+        }
+        setInput('');
+      }
+    },
+  });
 
-  const handlePersonalityBlur = () => {
-    if (personalityInput.trim()) {
-      addPersonalityTag(personalityInput);
-    }
-  };
+  const personalityHandlers = createTagHandlers(personalityTags, setPersonalityTags, personalityInput, setPersonalityInput);
+  const raceHandlers = createTagHandlers(raceTags, setRaceTags, raceInput, setRaceInput);
+  const languageHandlers = createTagHandlers(languageTags, setLanguageTags, languageInput, setLanguageInput);
 
   useEffect(() => {
     try {
@@ -113,6 +139,14 @@ export default function PersonaModule({ apiKey }) {
         if (p.personality) {
           const tags = p.personality.split(/[,，]/).map((t) => t.trim()).filter(Boolean);
           setPersonalityTags(tags);
+        }
+        if (p.race) {
+          const tags = p.race.split(/[,，]/).map((t) => t.trim()).filter(Boolean);
+          setRaceTags(tags);
+        }
+        if (p.language) {
+          const tags = p.language.split(/[,，]/).map((t) => t.trim()).filter(Boolean);
+          setLanguageTags(tags);
         }
       } else {
         setShowProfileForm(true);
@@ -165,7 +199,12 @@ export default function PersonaModule({ apiKey }) {
       setError('请至少填写名称和城市');
       return;
     }
-    const saved = { ...form, personality: personalityTags.join(', ') };
+    const saved = {
+      ...form,
+      personality: personalityTags.join(', '),
+      race: raceTags.join(', '),
+      language: languageTags.join(', '),
+    };
     localStorage.setItem(LS_PERSONA_KEY, JSON.stringify(saved));
     setProfile(saved);
     setShowProfileForm(false);
@@ -180,6 +219,18 @@ export default function PersonaModule({ apiKey }) {
     } else {
       setPersonalityTags([]);
     }
+    if (profile?.race) {
+      const tags = profile.race.split(/[,，]/).map((t) => t.trim()).filter(Boolean);
+      setRaceTags(tags);
+    } else {
+      setRaceTags([]);
+    }
+    if (profile?.language) {
+      const tags = profile.language.split(/[,，]/).map((t) => t.trim()).filter(Boolean);
+      setLanguageTags(tags);
+    } else {
+      setLanguageTags([]);
+    }
     setShowProfileForm(true);
   };
 
@@ -188,6 +239,9 @@ export default function PersonaModule({ apiKey }) {
     setProfile(null);
     setDaily(null);
     setGeneratedImages({});
+    setPersonalityTags([]);
+    setRaceTags([]);
+    setLanguageTags([]);
     setShowProfileForm(true);
   };
 
@@ -248,50 +302,77 @@ export default function PersonaModule({ apiKey }) {
   const handleGenerateImages = async () => {
     if (!daily || !apiKey?.trim()) return;
 
-    const prompts = [];
-    if (daily.outfit?.image_prompt) prompts.push({ key: 'outfit', prompt: daily.outfit.image_prompt });
-    if (daily.meals?.breakfast?.image_prompt) prompts.push({ key: 'breakfast', prompt: daily.meals.breakfast.image_prompt });
-    if (daily.meals?.lunch?.image_prompt) prompts.push({ key: 'lunch', prompt: daily.meals.lunch.image_prompt });
-    if (daily.meals?.dinner?.image_prompt) prompts.push({ key: 'dinner', prompt: daily.meals.dinner.image_prompt });
+    const foodPrompts = [];
+    if (daily.meals?.breakfast?.image_prompt) foodPrompts.push({ key: 'breakfast', prompt: daily.meals.breakfast.image_prompt });
+    if (daily.meals?.lunch?.image_prompt) foodPrompts.push({ key: 'lunch', prompt: daily.meals.lunch.image_prompt });
+    if (daily.meals?.dinner?.image_prompt) foodPrompts.push({ key: 'dinner', prompt: daily.meals.dinner.image_prompt });
+
+    const activityPrompts = [];
     if (daily.activities) {
       daily.activities.forEach((act, i) => {
-        if (act.image_prompt) prompts.push({ key: `activity_${i}`, prompt: act.image_prompt });
+        if (act.image_prompt) activityPrompts.push({ key: `activity_${i}`, prompt: act.image_prompt });
       });
     }
 
-    if (prompts.length === 0) {
+    const hasOutfit = !!daily.outfit?.image_prompt;
+    const totalCount = (hasOutfit ? 1 : 0) + foodPrompts.length + activityPrompts.length;
+
+    if (totalCount === 0) {
       setImageError('没有可生成的图片');
       return;
     }
 
     setGeneratingImages(true);
     setImageError('');
-    setTotalImageCount(prompts.length);
+    setTotalImageCount(totalCount);
     setGeneratingIndex(0);
 
     const images = {};
-    for (let i = 0; i < prompts.length; i++) {
-      setGeneratingIndex(i);
-      const item = prompts[i];
+    let outfitUrl = null;
+    let idx = 0;
+
+    const generateOne = async (key, prompt, refUrls) => {
+      setGeneratingIndex(idx);
+      const body = {
+        prompt,
+        size: '768x1024',
+        n: 1,
+        apiKey: apiKey.trim(),
+      };
+      if (refUrls && refUrls.length > 0) {
+        body.images = refUrls;
+      }
       try {
         const res = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: item.prompt,
-            size: '768x1024',
-            n: 1,
-            apiKey: apiKey.trim(),
-          }),
+          body: JSON.stringify(body),
         });
         const data = await res.json();
         if (data.success && data.images?.[0]) {
-          images[item.key] = data.images[0].url;
+          images[key] = data.images[0].url;
+          setGeneratedImages({ ...images });
+          return data.images[0].url;
         }
       } catch (err) {
-        console.error(`图片生成失败 (${item.key}):`, err);
+        console.error(`图片生成失败 (${key}):`, err);
       }
-      setGeneratedImages({ ...images });
+      return null;
+    };
+
+    if (hasOutfit) {
+      outfitUrl = await generateOne('outfit', daily.outfit.image_prompt, null);
+      idx++;
+    }
+
+    for (const fp of foodPrompts) {
+      await generateOne(fp.key, fp.prompt, outfitUrl ? [outfitUrl] : null);
+      idx++;
+    }
+
+    for (const ap of activityPrompts) {
+      await generateOne(ap.key, ap.prompt, outfitUrl ? [outfitUrl] : null);
+      idx++;
     }
 
     setGeneratingImages(false);
@@ -311,7 +392,7 @@ export default function PersonaModule({ apiKey }) {
     return (
       <div className="persona-module">
         <div className="persona-section-header">
-          <h2>🎭 人设档案</h2>
+          <h2><IconPersona size={24} /> 人设档案</h2>
           <p className="section-desc">设定你的虚拟人设，AI 将据此生成每日的衣食住行</p>
         </div>
 
@@ -329,9 +410,9 @@ export default function PersonaModule({ apiKey }) {
                     <span className="uploading-spinner" />
                   ) : (
                     <>
-                      <span className="persona-avatar-icon">📷</span>
-                      <span className="persona-avatar-text">上传头像</span>
-                    </>
+                    <span className="persona-avatar-icon"><IconCamera size={20} /></span>
+                    <span className="persona-avatar-text">上传头像</span>
+                  </>
                   )}
                 </div>
               )}
@@ -421,26 +502,71 @@ export default function PersonaModule({ apiKey }) {
                 ))}
               </select>
             </div>
-            <div className="persona-form-field">
-              <label className="persona-form-label">种族</label>
+          <div className="persona-form-field full-width">
+            <label className="persona-form-label">种族</label>
+            <div
+              className="persona-tag-input-wrap"
+              onClick={() => raceInputRef.current?.focus()}
+            >
+              {raceTags.map((tag, i) => (
+                <span key={i} className="persona-tag">
+                  {tag}
+                  <button
+                    className="persona-tag-remove"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      raceHandlers.remove(i);
+                    }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
               <input
-                className="persona-form-input"
+                ref={raceInputRef}
+                className="persona-tag-input"
                 type="text"
-                placeholder="如：东亚、高加索、非洲"
-                value={form.race}
-                onChange={(e) => handleFormChange('race', e.target.value)}
+                placeholder={raceTags.length === 0 ? '输入按回车添加，如：东亚、高加索' : ''}
+                value={raceInput}
+                onChange={(e) => setRaceInput(e.target.value)}
+                onKeyDown={raceHandlers.keyDown}
+                onBlur={raceHandlers.blur}
               />
             </div>
-            <div className="persona-form-field">
-              <label className="persona-form-label">语言</label>
+          </div>
+
+          <div className="persona-form-field full-width">
+            <label className="persona-form-label">语言</label>
+            <div
+              className="persona-tag-input-wrap"
+              onClick={() => languageInputRef.current?.focus()}
+            >
+              {languageTags.map((tag, i) => (
+                <span key={i} className="persona-tag">
+                  {tag}
+                  <button
+                    className="persona-tag-remove"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      languageHandlers.remove(i);
+                    }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
               <input
-                className="persona-form-input"
+                ref={languageInputRef}
+                className="persona-tag-input"
                 type="text"
-                placeholder="如：中文、英语、日语"
-                value={form.language}
-                onChange={(e) => handleFormChange('language', e.target.value)}
+                placeholder={languageTags.length === 0 ? '输入按回车添加，如：中文、英语、马来语' : ''}
+                value={languageInput}
+                onChange={(e) => setLanguageInput(e.target.value)}
+                onKeyDown={languageHandlers.keyDown}
+                onBlur={languageHandlers.blur}
               />
             </div>
+          </div>
           </div>
 
           <div className="persona-form-field full-width">
@@ -456,7 +582,7 @@ export default function PersonaModule({ apiKey }) {
                     className="persona-tag-remove"
                     onClick={(e) => {
                       e.stopPropagation();
-                      removePersonalityTag(i);
+                      personalityHandlers.remove(i);
                     }}
                   >
                     ×
@@ -470,8 +596,8 @@ export default function PersonaModule({ apiKey }) {
                 placeholder={personalityTags.length === 0 ? '输入标签后按回车添加' : ''}
                 value={personalityInput}
                 onChange={(e) => setPersonalityInput(e.target.value)}
-                onKeyDown={handlePersonalityKeyDown}
-                onBlur={handlePersonalityBlur}
+                onKeyDown={personalityHandlers.keyDown}
+                onBlur={personalityHandlers.blur}
               />
             </div>
             <span className="persona-form-hint">按回车或逗号添加标签，Backspace 删除</span>
@@ -510,11 +636,11 @@ export default function PersonaModule({ apiKey }) {
             />
           </div>
 
-          {error && <div className="error-message">⚠️ {error}</div>}
+          {error && <div className="error-message"><IconAlert size={16} /> {error}</div>}
 
           <div className="persona-form-actions">
             <button className="persona-btn persona-btn-primary" onClick={saveProfile}>
-              💾 保存人设
+              <IconSave size={18} /> 保存人设
             </button>
           </div>
         </div>
@@ -530,7 +656,7 @@ export default function PersonaModule({ apiKey }) {
     return (
       <div className="persona-module">
         <div className="persona-section-header">
-          <h2>🎭 人设日常</h2>
+          <h2><IconPersona size={24} /> 人设日常</h2>
           <p className="section-desc">基于人设档案，AI 自动生成今日的衣食住行</p>
         </div>
 
@@ -540,7 +666,7 @@ export default function PersonaModule({ apiKey }) {
               {profile.avatar ? (
                 <img src={profile.avatar} alt={profile.name} className="persona-avatar-img" />
               ) : (
-                '🎭'
+                <IconPersona size={32} />
               )}
             </div>
             <div className="persona-profile-info">
@@ -548,13 +674,13 @@ export default function PersonaModule({ apiKey }) {
               <div className="persona-profile-meta">
                 {profile.gender && <span>{profile.gender}</span>}
                 {profile.age && <span>{profile.age}岁</span>}
-                {profile.city && <span>📍 {profile.city}</span>}
-                {profile.occupation && <span>💼 {profile.occupation}</span>}
+                {profile.city && <span><IconLocation size={14} /> {profile.city}</span>}
+                {profile.occupation && <span><IconBriefcase size={14} /> {profile.occupation}</span>}
               </div>
             </div>
             <div className="persona-profile-actions">
               <button className="persona-btn persona-btn-secondary" onClick={handleEditProfile}>
-                ✏️ 编辑
+                <IconEdit size={16} /> 编辑
               </button>
               <button className="persona-btn persona-btn-danger" onClick={handleClearProfile}>
                 重置
@@ -569,16 +695,16 @@ export default function PersonaModule({ apiKey }) {
             </div>
           )}
           <div className="persona-profile-detail">
-            {profile.stylePreference && <span>👗 {profile.stylePreference}</span>}
-            {profile.dietPreference && <span>🍽️ {profile.dietPreference}</span>}
-            {profile.activityPreference && <span>🚶 {profile.activityPreference}</span>}
-            {profile.languageStyle && <span>💬 {LANGUAGE_STYLES.find((s) => s.value === profile.languageStyle)?.label || profile.languageStyle}</span>}
-            {profile.race && <span>🌍 {profile.race}</span>}
-            {profile.language && <span>🗣️ {profile.language}</span>}
+            {profile.stylePreference && <span><IconShirt size={14} /> {profile.stylePreference}</span>}
+            {profile.dietPreference && <span><IconUtensils size={14} /> {profile.dietPreference}</span>}
+            {profile.activityPreference && <span><IconWalk size={14} /> {profile.activityPreference}</span>}
+            {profile.languageStyle && <span><IconChat size={14} /> {LANGUAGE_STYLES.find((s) => s.value === profile.languageStyle)?.label || profile.languageStyle}</span>}
+            {profile.race && <span><IconGlobe size={14} /> {profile.race.split(/[,，]/).map((t) => t.trim()).filter(Boolean).join('、')}</span>}
+            {profile.language && <span><IconSpeak size={14} /> {profile.language.split(/[,，]/).map((t) => t.trim()).filter(Boolean).join('、')}</span>}
           </div>
         </div>
 
-        {error && <div className="error-message">⚠️ {error}</div>}
+        {error && <div className="error-message"><IconAlert size={16} /> {error}</div>}
 
         <button
           className="persona-btn persona-btn-primary persona-generate-btn"
@@ -591,7 +717,7 @@ export default function PersonaModule({ apiKey }) {
               生成中...
             </>
           ) : (
-            '📅 生成今日日常'
+            <><IconCalendar size={18} /> 生成今日日常</>
           )}
         </button>
       </div>
@@ -601,7 +727,7 @@ export default function PersonaModule({ apiKey }) {
   return (
     <div className="persona-module">
       <div className="persona-section-header">
-        <h2>🎭 人设日常</h2>
+        <h2><IconPersona size={24} /> 人设日常</h2>
         <p className="section-desc">
           {profile.name} · {profile.city}
           <button className="persona-link-btn" onClick={handleEditProfile}>编辑人设</button>
@@ -611,24 +737,25 @@ export default function PersonaModule({ apiKey }) {
       <div className="persona-daily">
         <div className="persona-daily-header">
           <span className="persona-daily-date">
-            📅 {weather?.date || new Date().toISOString().slice(0, 10)}
+            <IconCalendar size={16} /> {weather?.date || new Date().toISOString().slice(0, 10)}
           </span>
           <span className="persona-daily-weather">
             {weather
-              ? `${getWeatherEmoji(weather.weatherCode)} ${getWeatherDesc(weather.weatherCode)} ${weather.minTemp}°~${weather.maxTemp}° | ${weather.city}`
-              : '🌤️ 天气数据获取中...'}
+              ? <>{getWeatherIcon(weather.weatherCode)} {getWeatherDesc(weather.weatherCode)} {weather.minTemp}°~{weather.maxTemp}° | {weather.city}</>
+              : <><IconSun size={16} /> 天气数据获取中...</>}
           </span>
         </div>
 
         {daily.outfit && (
           <div className="persona-daily-section">
-            <div className="persona-daily-section-title">👗 今日穿搭</div>
+            <div className="persona-daily-section-title"><IconShirt size={18} /> 今日穿搭</div>
             <div className="persona-outfit-card">
               {generatedImages.outfit && (
                 <img
-                  className="persona-image"
+                  className="persona-image persona-clickable"
                   src={generatedImages.outfit}
                   alt="今日穿搭"
+                  onClick={() => setPreviewImage(generatedImages.outfit)}
                 />
               )}
               <div className="persona-outfit-detail">
@@ -668,14 +795,14 @@ export default function PersonaModule({ apiKey }) {
 
         {daily.meals && (
           <div className="persona-daily-section">
-            <div className="persona-daily-section-title">🍽️ 今日餐食</div>
+            <div className="persona-daily-section-title"><IconUtensils size={18} /> 今日餐食</div>
             <div className="persona-meals-grid">
               {daily.meals.breakfast && (
                 <div className="persona-meal-card">
                   {generatedImages.breakfast && (
-                    <img className="persona-image" src={generatedImages.breakfast} alt="早餐" />
+                    <img className="persona-image persona-clickable" src={generatedImages.breakfast} alt="早餐" onClick={() => setPreviewImage(generatedImages.breakfast)} />
                   )}
-                  <div className="persona-meal-time">🌅 早餐</div>
+                  <div className="persona-meal-time"><IconSun size={14} /> 早餐</div>
                   <div className="persona-meal-food">{daily.meals.breakfast.food}</div>
                   {daily.meals.breakfast.description && (
                     <div className="persona-meal-desc">{daily.meals.breakfast.description}</div>
@@ -685,9 +812,9 @@ export default function PersonaModule({ apiKey }) {
               {daily.meals.lunch && (
                 <div className="persona-meal-card">
                   {generatedImages.lunch && (
-                    <img className="persona-image" src={generatedImages.lunch} alt="午餐" />
+                    <img className="persona-image persona-clickable" src={generatedImages.lunch} alt="午餐" onClick={() => setPreviewImage(generatedImages.lunch)} />
                   )}
-                  <div className="persona-meal-time">🌞 午餐</div>
+                  <div className="persona-meal-time"><IconSun size={14} /> 午餐</div>
                   <div className="persona-meal-food">{daily.meals.lunch.food}</div>
                   {daily.meals.lunch.description && (
                     <div className="persona-meal-desc">{daily.meals.lunch.description}</div>
@@ -697,9 +824,9 @@ export default function PersonaModule({ apiKey }) {
               {daily.meals.dinner && (
                 <div className="persona-meal-card">
                   {generatedImages.dinner && (
-                    <img className="persona-image" src={generatedImages.dinner} alt="晚餐" />
+                    <img className="persona-image persona-clickable" src={generatedImages.dinner} alt="晚餐" onClick={() => setPreviewImage(generatedImages.dinner)} />
                   )}
-                  <div className="persona-meal-time">🌙 晚餐</div>
+                  <div className="persona-meal-time"><IconCloud size={14} /> 晚餐</div>
                   <div className="persona-meal-food">{daily.meals.dinner.food}</div>
                   {daily.meals.dinner.description && (
                     <div className="persona-meal-desc">{daily.meals.dinner.description}</div>
@@ -712,7 +839,7 @@ export default function PersonaModule({ apiKey }) {
 
         {daily.activities && daily.activities.length > 0 && (
           <div className="persona-daily-section">
-            <div className="persona-daily-section-title">📍 今日活动</div>
+            <div className="persona-daily-section-title"><IconLocation size={18} /> 今日活动</div>
             <div className="persona-activity-timeline">
               {daily.activities.map((act, i) => (
                 <div key={i} className="persona-activity-item">
@@ -721,9 +848,10 @@ export default function PersonaModule({ apiKey }) {
                   <div className="persona-activity-content">
                     {generatedImages[`activity_${i}`] && (
                       <img
-                        className="persona-image persona-image-sm"
+                        className="persona-image persona-image-sm persona-clickable"
                         src={generatedImages[`activity_${i}`]}
                         alt={act.location}
+                        onClick={() => setPreviewImage(generatedImages[`activity_${i}`])}
                       />
                     )}
                     <div className="persona-activity-location">{act.location}</div>
@@ -736,23 +864,23 @@ export default function PersonaModule({ apiKey }) {
         )}
 
         {daily.location_note && (
-          <div className="persona-location-note">📍 {daily.location_note}</div>
+          <div className="persona-location-note"><IconLocation size={14} /> {daily.location_note}</div>
         )}
 
         {daily.caption && (
           <div className="persona-daily-section">
-            <div className="persona-daily-section-title">📝 发布文案</div>
+            <div className="persona-daily-section-title"><IconChat size={18} /> 发布文案</div>
             <div className="persona-caption">
               <div className="persona-caption-text">{daily.caption}</div>
               <button className="persona-copy-btn" onClick={handleCopyCaption}>
-                {copied ? '✅ 已复制' : '📋 复制文案'}
+                {copied ? <><IconCheck size={16} /> 已复制</> : <><IconCopy size={16} /> 复制文案</>}
               </button>
             </div>
           </div>
         )}
 
-        {error && <div className="error-message">⚠️ {error}</div>}
-        {imageError && <div className="error-message">⚠️ {imageError}</div>}
+        {error && <div className="error-message"><IconAlert size={16} /> {error}</div>}
+        {imageError && <div className="error-message"><IconAlert size={16} /> {imageError}</div>}
 
         <div className="persona-actions">
           <button
@@ -760,7 +888,7 @@ export default function PersonaModule({ apiKey }) {
             onClick={handleGenerate}
             disabled={loading}
           >
-            {loading ? '生成中...' : '🔄 重新生成'}
+            {loading ? '生成中...' : <><IconRefresh size={16} /> 重新生成</>}
           </button>
 
           {!generatingImages && Object.keys(generatedImages).length === 0 && (
@@ -769,7 +897,7 @@ export default function PersonaModule({ apiKey }) {
               onClick={handleGenerateImages}
               disabled={generatingImages}
             >
-              🎨 一键生成所有配图
+              <IconPalette size={16} /> 一键生成所有配图
             </button>
           )}
 
@@ -783,6 +911,20 @@ export default function PersonaModule({ apiKey }) {
           )}
         </div>
       </div>
+
+      {previewImage && (
+        <div className="preview-overlay" onClick={() => setPreviewImage(null)}>
+          <button className="preview-close" onClick={() => setPreviewImage(null)}>
+            <IconX size={24} />
+          </button>
+          <img
+            src={previewImage}
+            alt="预览"
+            className="preview-image"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

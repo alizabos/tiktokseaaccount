@@ -632,6 +632,7 @@ app.post('/api/persona/generate', async (req, res) => {
 输出必须是严格的 JSON 格式，不要加任何 markdown 代码块标记或其他文字：
 
 {
+  "character_appearance": "统一的角色外貌英文描述（50-80英文词）。基于race种族特征，描述此人的年龄感、脸型、发型发色、眼型瞳色、肤色、身型、气质。此描述将用于所有含人物的图片生成以保证外貌一致性。例如：'A 25-year-old East Asian woman with heart-shaped face, long straight black hair, almond-shaped dark brown eyes, fair porcelain skin, slim build, gentle and warm aura'",
   "date": "今天的日期",
   "outfit": {
     "top": "上衣描述",
@@ -639,23 +640,24 @@ app.post('/api/persona/generate', async (req, res) => {
     "shoes": "鞋子描述",
     "accessories": "配饰描述",
     "overall": "整体穿搭一句话描述",
-    "image_prompt": "英文图片生成提示词，用于AI生成穿搭图片，写实风格，包含人物穿着、场景、光线、构图，以'A fashion photo of'开头"
+    "outfit_desc": "今日穿搭的英文描述（20-30词），描述全身穿着、颜色搭配，用于其他图片中统一服装。例如：'wearing a beige linen blouse, high-waisted wide-leg navy trousers, white leather sneakers, and a gold pendant necklace'",
+    "image_prompt": "英文图片生成提示词，用于AI生成穿搭照。必须以'A fashion photo of'开头，必须包含完整角色外貌(character_appearance)和今日穿搭(outfit_desc)、场景（早晨卧室/阳台自然光）、全身或大半身构图、写实风格。格式：'A fashion photo of [完整character_appearance], [完整outfit_desc], standing by [场景], natural morning light, full body shot, photorealistic'"
   },
   "meals": {
     "breakfast": {
       "food": "食物名称",
       "description": "简短的中文描述",
-      "image_prompt": "英文美食摄影提示词，以'A food photo of'开头，精美摆拍风格"
+      "image_prompt": "英文Vlog风格图片提示词。人物以博主身份向观众分享早餐，像是在拍Vlog记录日常生活，手持食物或对着镜头展示，有互动感和分享感。必须包含完整的角色外貌(character_appearance)和今日穿搭(outfit_desc)。格式：'A vlog-style photo of [完整character_appearance], [完整outfit_desc], holding up [food] to the camera with a warm smile, morning kitchen background, natural light, casual selfie angle, photorealistic'"
     },
     "lunch": {
       "food": "食物名称",
       "description": "简短的中文描述",
-      "image_prompt": "英文美食摄影提示词"
+      "image_prompt": "英文Vlog风格图片提示词。人物以博主身份向观众分享午餐，像是在拍Vlog记录日常生活，手持食物或对着镜头展示，有互动感和分享感。必须包含完整的角色外貌(character_appearance)和今日穿搭(outfit_desc)。格式：'A vlog-style photo of [完整character_appearance], [完整outfit_desc], showing [food] to the camera at a cafe, casual vlog selfie angle, natural afternoon light, photorealistic'"
     },
     "dinner": {
       "food": "食物名称",
       "description": "简短的中文描述",
-      "image_prompt": "英文美食摄影提示词"
+      "image_prompt": "英文Vlog风格图片提示词。人物以博主身份向观众分享晚餐，像是在拍Vlog记录日常生活，手持食物或对着镜头展示，有互动感和分享感。必须包含完整的角色外貌(character_appearance)和今日穿搭(outfit_desc)。格式：'A vlog-style photo of [完整character_appearance], [完整outfit_desc], presenting [food] to the camera at a restaurant, warm evening light, casual vlog selfie angle, photorealistic'"
     }
   },
   "activities": [
@@ -663,14 +665,21 @@ app.post('/api/persona/generate', async (req, res) => {
       "time": "HH:MM",
       "location": "地点名称",
       "description": "活动的中文描述, 20字以内",
-      "image_prompt": "英文生活场景拍摄提示词"
+      "image_prompt": "英文生活场景拍摄提示词。必须包含完整的角色外貌(character_appearance)和今日穿搭(outfit_desc)，因为人物全天穿着同一套衣服。必须以'A lifestyle photo of'开头。格式：'A lifestyle photo of [完整character_appearance], [完整outfit_desc], [活动场景动作], [光线环境], photorealistic'"
     }
   ],
   "caption": "适合发布到社交媒体的文案（中文，2-4句话，带2-3个话题标签，符合人设语言风格）",
   "location_note": "今日主要活动区域的一句话描述"
 }
 
-要求：所有内容符合人设性格/职业/偏好；根据天气决定穿搭厚度和风格；根据城市特色设计活动地点；餐食符合饮食偏好；活动安排合理有节奏感；文案有人设语言风格；image_prompt 必须根据人物的种族(race)特征生成匹配的人物外貌描述；语言偏好(language)如为中文则caption和描述用中文，如为其他语言可混合使用；只输出 JSON。`;
+关键要求：
+1. character_appearance 必须基于 race（种族）生成，外貌特征要有种族辨识度
+2. outfit_desc 必须详细描述今日全身穿着（包括颜色、材质、款式），同一角色全天穿同一套衣服
+3. outfit.image_prompt、所有 activities[].image_prompt、meals 中所有 image_prompt 中的人物必须是【完全相同的 character_appearance + 完全相同的 outfit_desc】，确保全天所有图片看起来是同一个人、同一套衣服
+ 4. 餐食图片必须是人物以Vlog博主身份向观众分享美食，像是自拍视角对着镜头展示食物，有互动感和分享感，不是孤立拍摄食物，也不是正襟危坐吃饭
+ 5. 所有内容符合人设性格/职业/偏好；根据天气决定穿搭厚度和风格；根据城市特色设计活动地点
+ 6. 语言偏好(language)如为中文则caption和描述用中文，如为其他语言可混合使用
+ 7. 只输出 JSON，不要任何额外文字。`;
 
     const userContent = `人设档案：
 - 名称：${profile.name || '未设定'}

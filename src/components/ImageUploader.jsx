@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { IconCamera, IconX } from './Icons';
 
 const API_BASE = '/api';
 const MAX_IMAGES = 10;
@@ -89,7 +90,7 @@ export default function ImageUploader({ images, onChange }) {
   return (
     <div className="image-uploader">
       <div className="uploader-label">
-        📷 参考图片
+        <span className="uploader-label-text"><IconCamera size={16} /> 参考图片</span>
         <span className="uploader-hint">
           拖拽上传，最多 {MAX_IMAGES} 张（已上传 {images.length} 张）
         </span>
@@ -102,7 +103,7 @@ export default function ImageUploader({ images, onChange }) {
           <div key={index} className="uploader-card">
             <span className="card-badge">{img.label}</span>
             <button className="card-remove" onClick={() => removeImage(index)}>
-              ✕
+              <IconX size={14} />
             </button>
             <img src={img.dataUrl || img.url} alt={img.label} className="card-image" />
           </div>

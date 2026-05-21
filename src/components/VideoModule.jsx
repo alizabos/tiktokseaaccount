@@ -2,11 +2,12 @@ import { useState } from 'react';
 import VideoAnalyzer from './VideoAnalyzer';
 import ScriptRecreator from './ScriptRecreator';
 import VideoGenerator from './VideoGenerator';
+import { IconSearch, IconLayers, IconRocket } from './Icons';
 
 const STEPS = [
-  { id: 'analyze', label: '1. 视频识别', icon: '🔍' },
-  { id: 'recreate', label: '2. 脚本复刻', icon: '✍️' },
-  { id: 'generate', label: '3. 视频生成', icon: '🎬' },
+  { id: 'analyze', label: '1. 视频识别', icon: <IconSearch size={18} /> },
+  { id: 'recreate', label: '2. 脚本复刻', icon: <IconLayers size={18} /> },
+  { id: 'generate', label: '3. 视频生成', icon: <IconRocket size={18} /> },
 ];
 
 export default function VideoModule({ apiKey }) {

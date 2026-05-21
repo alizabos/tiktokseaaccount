@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { IconLayers, IconImage, IconAlert } from './Icons';
 
 export default function ScriptRecreator({ apiKey, analysis, onComplete }) {
   const [productInfo, setProductInfo] = useState('');
@@ -81,7 +82,7 @@ export default function ScriptRecreator({ apiKey, analysis, onComplete }) {
   return (
     <div className="script-recreator">
       <div className="video-section-header">
-        <h2>✍️ 脚本复刻</h2>
+        <h2><IconLayers size={22} /> 脚本复刻</h2>
         <p className="section-desc">基于爆款分析结果，生成新的分镜脚本</p>
       </div>
 
@@ -107,11 +108,11 @@ export default function ScriptRecreator({ apiKey, analysis, onComplete }) {
             生成脚本中...
           </>
         ) : (
-          '✍️ 生成脚本'
+          <><IconLayers size={16} /> 生成脚本</>
         )}
       </button>
 
-      {error && <div className="error-message">⚠️ {error}</div>}
+      {error && <div className="error-message"><IconAlert size={16} /> {error}</div>}
 
       {scenes && Array.isArray(scenes) && (
         <div className="scenes-result">
@@ -128,7 +129,7 @@ export default function ScriptRecreator({ apiKey, analysis, onComplete }) {
                   生成分镜图片中...
                 </>
               ) : (
-                '🖼️ 生成分镜图片'
+                <><IconImage size={16} /> 生成分镜图片</>
               )}
             </button>
           </div>

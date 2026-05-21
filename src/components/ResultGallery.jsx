@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { IconZoom, IconDownload } from './Icons';
 
 export default function ResultGallery({ results, loading, onPreview, resultRef }) {
   const [downloadingIdx, setDownloadingIdx] = useState(null);
@@ -28,7 +29,7 @@ export default function ResultGallery({ results, loading, onPreview, resultRef }
 
   return (
     <div className="result-gallery" ref={resultRef}>
-      <div className="result-label">📦 生成结果</div>
+      <div className="result-label">生成结果</div>
 
       {loading && results.length === 0 && (
         <div className="result-loading">
@@ -55,13 +56,13 @@ export default function ResultGallery({ results, loading, onPreview, resultRef }
                 onClick={() => handleDownload(item.url, index)}
                 disabled={downloadingIdx === index}
               >
-                {downloadingIdx === index ? '下载中...' : '⬇ 下载'}
+                {downloadingIdx === index ? '下载中...' : <><IconDownload size={16} /> 下载</>}
               </button>
               <button
                 className="result-btn secondary"
                 onClick={() => onPreview(item.url)}
               >
-                🔍 放大
+                <><IconZoom size={16} /> 放大</>
               </button>
             </div>
             {item.revised_prompt && (
